@@ -6,6 +6,7 @@ import File.Select as Select
 import Html exposing (Html, button, div, h5, header, li, p, span, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Http
 import Parser exposing ((|.), (|=), Parser, chompUntil, chompWhile, getChompedString, keyword, run, succeed, symbol, token)
 import Task
 
@@ -14,6 +15,7 @@ type alias Model =
     { error : String
     , fileContent : String
     , gameSystem : Maybe GameSystem
+    , stylesheet : String
     }
 
 
@@ -61,6 +63,7 @@ type Msg
     = OpenFileClicked
     | FileSelected File
     | FileRead String
+    | GotStylesheet (Result Http.Error String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -73,17 +76,42 @@ update msg model =
             ( model, Task.perform FileRead (File.toString file) )
 
         FileRead content ->
-            ( { model | fileContent = content, gameSystem = parseGameSystem content }, Cmd.none )
+            let
+                gameSystem =
+                    parseGameSystem content
+
+                snakeName =
+                    snakeCaseSystemName gameSystem
+            in
+            ( { model | fileContent = content, gameSystem = gameSystem }
+            , Http.get
+                { url = "/systems/" ++ snakeName ++ ".xsl"
+                , expect = Http.expectString GotStylesheet
+                }
+            )
+
+        GotStylesheet result ->
+            case result of
+                Ok xsl ->
+                    ( { model | stylesheet = xsl }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
 
-snakeCaseSystemName : String -> String
+snakeCaseSystemName : Maybe GameSystem -> String
 snakeCaseSystemName name =
-    String.replace " " "_" (String.toLower name)
+    case name of
+        Just game ->
+            String.replace " " "_" (String.toLower game.name)
+
+        Nothing ->
+            ""
 
 
 viewGameSystemName : GameSystem -> String
 viewGameSystemName game =
-    snakeCaseSystemName game.name
+    game.name
 
 
 view : Model -> Html Msg
@@ -176,7 +204,7 @@ view model =
                         ]
                     ]
                 ]
-            , div [ id "wrapper" ] []
+            , div [ id "wrapper" ] [ text model.stylesheet ]
             ]
         ]
 
@@ -184,7 +212,7 @@ view model =
 main : Program () Model Msg
 main =
     Browser.element
-        { init = always ( { error = "", fileContent = "", gameSystem = Nothing }, Cmd.none )
+        { init = always ( { error = "", fileContent = "", gameSystem = Nothing, stylesheet = "" }, Cmd.none )
         , view = view
         , update = update
         , subscriptions = always Sub.none
