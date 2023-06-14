@@ -1,4 +1,4 @@
-module BSCards exposing (..)
+port module BSCards exposing (..)
 
 import Browser
 import File exposing (File)
@@ -6,6 +6,8 @@ import File.Select as Select
 import Html exposing (Html, button, div, h5, header, li, p, span, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Html.Parser
+import Html.Parser.Util
 import Http
 import Parser exposing ((|.), (|=), Parser, chompUntil, chompWhile, getChompedString, keyword, run, succeed, symbol, token)
 import Task
@@ -16,12 +18,32 @@ type alias Model =
     , fileContent : String
     , gameSystem : Maybe GameSystem
     , stylesheet : String
+    , fragment : String
     }
 
 
 type alias GameSystem =
     { name : String
     }
+
+
+
+-- PORTS
+
+
+port sendXml : ( String, String ) -> Cmd msg
+
+
+port receiveFragment : (String -> msg) -> Sub msg
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    receiveFragment Recv
 
 
 gameSystemAttribute : String
@@ -55,7 +77,6 @@ parseGameSystem : String -> Maybe GameSystem
 parseGameSystem content =
     content
         |> run systemParser
-        |> Debug.log "result"
         |> Result.toMaybe
 
 
@@ -64,6 +85,8 @@ type Msg
     | FileSelected File
     | FileRead String
     | GotStylesheet (Result Http.Error String)
+    | SendXml
+    | Recv String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -93,10 +116,21 @@ update msg model =
         GotStylesheet result ->
             case result of
                 Ok xsl ->
-                    ( { model | stylesheet = xsl }, Cmd.none )
+                    -- ( { model | stylesheet = xsl }, Cmd.none )
+                    update SendXml { model | stylesheet = xsl }
 
                 Err _ ->
                     ( model, Cmd.none )
+
+        SendXml ->
+            let
+                _ =
+                    Debug.log "xsl:"
+            in
+            ( model, sendXml ( model.fileContent, model.stylesheet ) )
+
+        Recv fragment ->
+            ( { model | fragment = fragment }, Cmd.none )
 
 
 snakeCaseSystemName : Maybe GameSystem -> String
@@ -112,6 +146,17 @@ snakeCaseSystemName name =
 viewGameSystemName : GameSystem -> String
 viewGameSystemName game =
     game.name
+
+
+viewTextHtml : String -> List (Html.Html msg)
+viewTextHtml text =
+    case Html.Parser.run text of
+        Ok nodes ->
+            Html.Parser.Util.toVirtualDom nodes
+
+        Err _ ->
+            Debug.log "result"
+                []
 
 
 view : Model -> Html Msg
@@ -204,7 +249,7 @@ view model =
                         ]
                     ]
                 ]
-            , div [ id "wrapper" ] [ text model.stylesheet ]
+            , div [ id "wrapper" ] (viewTextHtml model.fragment)
             ]
         ]
 
@@ -212,8 +257,8 @@ view model =
 main : Program () Model Msg
 main =
     Browser.element
-        { init = always ( { error = "", fileContent = "", gameSystem = Nothing, stylesheet = "" }, Cmd.none )
+        { init = always ( { error = "", fileContent = "", gameSystem = Nothing, stylesheet = "", fragment = "" }, Cmd.none )
         , view = view
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
