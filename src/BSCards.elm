@@ -93,7 +93,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         OpenFileClicked ->
-            ( model, Select.file [] FileSelected )
+            ( model, Select.file [ ".ros", ".rosz" ] FileSelected )
 
         FileSelected file ->
             ( model, Task.perform FileRead (File.toString file) )
