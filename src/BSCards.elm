@@ -159,12 +159,35 @@ viewTextHtml text =
                 []
 
 
+type ConditionalClass
+    = Hidden
+    | Flex
+    | None
+
+
+viewUsageStep : String -> String -> String -> ConditionalClass -> Html msg
+viewUsageStep number title description conditional =
+    div
+        [ class "flex grow bg-white p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]"
+        , classList [ ( "lg:hidden", conditional == Hidden ), ( "flex", conditional == Hidden ), ( "lg:flex", conditional == Flex ), ( "hidden", conditional == Flex ) ]
+        ]
+        [ div [ class "mr-4 flex w-12 items-center justify-center bg-gray-800 px-4 text-6xl text-white" ]
+            [ span [] [ text number ] ]
+        , div []
+            [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
+                [ text title ]
+            , p [ class "mb-4 text-3xl text-neutral-600 lg:text-base" ]
+                [ text description ]
+            ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
         [ header [ class "w-full bg-gray-800 p-6 lg:p-3 print:hidden" ]
             [ div [ class "mx-auto flex max-w-7xl items-center justify-between" ]
-                [ div [ class "flex items-center grow" ]
+                [ div [ class "flex items-center flex-1" ]
                     [ div [ class "text-white" ] [ text "LOGO" ]
                     , div [ class "px-3" ]
                         [ button
@@ -174,18 +197,16 @@ view model =
                             [ text "Select Roster" ]
                         ]
                     ]
-                , div [ class "grow text-white text-2xl" ]
-                    [ span []
-                        [ text <|
+                , div [ class "flex-1 text-white text-xl text-center uppercase font-semibold" ]
+                    [ span [] <|
                             case model.gameSystem of
                                 Just game ->
-                                    viewGameSystemName game
+                                [ text (viewGameSystemName game) ]
 
                                 Nothing ->
-                                    ""
+                                []
                         ]
-                    ]
-                , div [ class "flex grow cursor-pointer justify-end" ]
+                , div [ class "flex flex-1 cursor-pointer justify-end" ]
                     [ div [ id "print", class "bg-blue-800 px-4 py-2 text-xl font-semibold text-white" ]
                         [ text "PRINT" ]
                     ]
@@ -205,40 +226,14 @@ view model =
                 [ id "start"
                 , class "flex flex-col gap-4"
                 ]
+                (if String.isEmpty model.fragment then
                 [ div
                     [ id "how"
                     , class "flex flex-wrap gap-4"
-                    ]
-                    [ div [ id "how_upload", class "flex grow bg-white p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]" ]
-                        [ div [ class "mr-4 flex w-12 items-center justify-center bg-gray-800 px-4 text-6xl text-white" ]
-                            [ span [] [ text "1" ] ]
-                        , div []
-                            [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
-                                [ text "Upload your Roster" ]
-                            , p [ class "mb-4 text-3xl text-neutral-600 lg:text-base" ]
-                                [ text "Click the 'Choose File' button above and select your Roster file (.ros or .rosz)" ]
-                            ]
                         ]
-                    , div [ id "how_view", class "flex grow bg-white p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] lg:hidden" ]
-                        [ div [ class "mr-4 flex w-12 items-center justify-center bg-gray-800 px-4 text-center text-6xl text-white" ]
-                            [ span [] [ text "2" ] ]
-                        , div []
-                            [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
-                                [ text "View your Cards" ]
-                            , p [ class "mb-4 text-3xl text-neutral-600" ]
-                                [ text "The game system style sheets are formatted, so you can easily view cards for the units on your mobile device." ]
-                            ]
-                        ]
-                    , div [ id "how_print", class "hidden grow bg-white p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] lg:flex" ]
-                        [ div [ class "mr-4 flex w-12 basis-4 items-center justify-center bg-gray-800 px-4 text-center text-6xl text-white" ]
-                            [ span [] [ text "2" ] ]
-                        , div []
-                            [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
-                                [ text "Print your Cards" ]
-                            , p [ class "mb-4 text-base text-neutral-600" ]
-                                [ text "Click Print for a printer friendly version of the unit cards." ]
-                            ]
-                        ]
+                        [ viewUsageStep "1" "Upload your Roster" "Choose File' button above and select your Roster file (.ros or .rosz)" None
+                        , viewUsageStep "2" "View your Cards" "The game system style sheets are formatted so you can easily view cards for the units on your mobile device." Hidden
+                        , viewUsageStep "2" "Print your Cards" "Click Print for a printer friendly version of the unit cards." Flex
                     ]
                 , div [ id "systems", class "bg-white p-12 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]" ]
                     [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
@@ -249,6 +244,10 @@ view model =
                         ]
                     ]
                 ]
+
+                 else
+                    []
+                )
             , div [ id "wrapper" ] (viewTextHtml model.fragment)
             ]
         ]
