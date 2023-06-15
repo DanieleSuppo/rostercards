@@ -199,13 +199,13 @@ view model =
                     ]
                 , div [ class "flex-1 text-white text-xl text-center uppercase font-semibold" ]
                     [ span [] <|
-                            case model.gameSystem of
-                                Just game ->
+                        case model.gameSystem of
+                            Just game ->
                                 [ text (viewGameSystemName game) ]
 
-                                Nothing ->
+                            Nothing ->
                                 []
-                        ]
+                    ]
                 , div [ class "flex flex-1 cursor-pointer justify-end" ]
                     [ div [ id "print", class "bg-blue-800 px-4 py-2 text-xl font-semibold text-white" ]
                         [ text "PRINT" ]
@@ -227,23 +227,23 @@ view model =
                 , class "flex flex-col gap-4"
                 ]
                 (if String.isEmpty model.fragment then
-                [ div
-                    [ id "how"
-                    , class "flex flex-wrap gap-4"
+                    [ div
+                        [ id "how"
+                        , class "flex flex-wrap gap-4"
                         ]
                         [ viewUsageStep "1" "Upload your Roster" "Choose File' button above and select your Roster file (.ros or .rosz)" None
                         , viewUsageStep "2" "View your Cards" "The game system style sheets are formatted so you can easily view cards for the units on your mobile device." Hidden
                         , viewUsageStep "2" "Print your Cards" "Click Print for a printer friendly version of the unit cards." Flex
-                    ]
-                , div [ id "systems", class "bg-white p-12 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]" ]
-                    [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
-                        [ text "Supported Games" ]
-                    , ul [ class "list-inside list-disc text-3xl lg:text-base" ]
-                        [ li [] [ text "Stargrave" ]
-                        , li [] [ text "Xenos Rampant" ]
+                        ]
+                    , div [ id "systems", class "bg-white p-12 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]" ]
+                        [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
+                            [ text "Supported Games" ]
+                        , ul [ class "list-inside list-disc text-3xl lg:text-base" ]
+                            [ li [] [ text "Stargrave" ]
+                            , li [] [ text "Xenos Rampant" ]
+                            ]
                         ]
                     ]
-                ]
 
                  else
                     []
