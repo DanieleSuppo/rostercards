@@ -89,6 +89,11 @@ type Msg
     | Recv String
 
 
+isRoster : String -> Bool
+isRoster content =
+    String.startsWith """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" content
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -99,19 +104,23 @@ update msg model =
             ( model, Task.perform FileRead (File.toString file) )
 
         FileRead content ->
-            let
-                gameSystem =
-                    parseGameSystem content
+            if isRoster content == True then
+                let
+                    gameSystem =
+                        parseGameSystem content
 
-                snakeName =
-                    snakeCaseSystemName gameSystem
-            in
-            ( { model | fileContent = content, gameSystem = gameSystem }
-            , Http.get
-                { url = "/systems/" ++ snakeName ++ ".xsl"
-                , expect = Http.expectString GotStylesheet
-                }
-            )
+                    snakeName =
+                        snakeCaseSystemName gameSystem
+                in
+                ( { model | fileContent = content, gameSystem = gameSystem }
+                , Http.get
+                    { url = "/systems/" ++ snakeName ++ ".xsl"
+                    , expect = Http.expectString GotStylesheet
+                    }
+                )
+
+            else
+                ( { model | error = "Not a Roster" }, Cmd.none )
 
         GotStylesheet result ->
             case result of
