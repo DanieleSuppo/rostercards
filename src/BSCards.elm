@@ -13,12 +13,18 @@ import Parser exposing ((|.), (|=), Parser, chompUntil, chompWhile, getChompedSt
 import Task
 
 
+type Status
+    = New
+    | Loaded String String
+    | Error String
+
+
 type alias Model =
-    { error : String
-    , fileContent : String
+    { fileContent : String
     , gameSystem : Maybe GameSystem
     , stylesheet : String
     , fragment : String
+    , status : Status
     }
 
 
@@ -89,11 +95,6 @@ type Msg
     | Recv String
 
 
-isRoster : String -> Bool
-isRoster content =
-    String.startsWith """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" content
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -104,7 +105,7 @@ update msg model =
             ( model, Task.perform FileRead (File.toString file) )
 
         FileRead content ->
-            if isRoster content == True then
+            if String.startsWith """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" content == True then
                 let
                     gameSystem =
                         parseGameSystem content
@@ -119,27 +120,33 @@ update msg model =
                     }
                 )
 
+            else if String.startsWith """PK""" content then
+                let
+                    _ =
+                        Debug.log "rosz" content
+                in
+                ( model, Cmd.none )
+
             else
-                ( { model | error = "Not a Roster" }, Cmd.none )
+                ( { model | status = Error "Not a Roster" }, Cmd.none )
 
         GotStylesheet result ->
             case result of
                 Ok xsl ->
-                    -- ( { model | stylesheet = xsl }, Cmd.none )
-                    update SendXml { model | stylesheet = xsl }
+                    if String.startsWith "<!DOCTYPE html>" xsl then
+                        ( { model | status = Error "Game System not supported!" }, Cmd.none )
+
+                    else
+                        ( { model | stylesheet = xsl }, Task.perform (always SendXml) (Task.succeed ()) )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | status = Error "Game System not supported!" }, Cmd.none )
 
         SendXml ->
-            let
-                _ =
-                    Debug.log "xsl:"
-            in
             ( model, sendXml ( model.fileContent, model.stylesheet ) )
 
         Recv fragment ->
-            ( { model | fragment = fragment }, Cmd.none )
+            ( { model | status = Loaded (viewGameSystemName model.gameSystem) fragment, gameSystem = Nothing }, Cmd.none )
 
 
 snakeCaseSystemName : Maybe GameSystem -> String
@@ -152,9 +159,14 @@ snakeCaseSystemName name =
             ""
 
 
-viewGameSystemName : GameSystem -> String
-viewGameSystemName game =
-    game.name
+viewGameSystemName : Maybe GameSystem -> String
+viewGameSystemName name =
+    case name of
+        Just game ->
+            game.name
+
+        Nothing ->
+            ""
 
 
 viewTextHtml : String -> List (Html.Html msg)
@@ -191,6 +203,39 @@ viewUsageStep number title description conditional =
         ]
 
 
+viewIntro : Html msg
+viewIntro =
+    div
+        [ id "start"
+        , class "flex flex-col gap-4"
+        ]
+        [ div
+            [ id "how"
+            , class "flex flex-wrap gap-4"
+            ]
+            [ viewUsageStep "1" "Upload your Roster" "Choose File' button above and select your Roster file (.ros or .rosz)" None
+            , viewUsageStep "2" "View your Cards" "The game system style sheets are formatted so you can easily view cards for the units on your mobile device." Hidden
+            , viewUsageStep "2" "Print your Cards" "Click Print for a printer friendly version of the unit cards." Flex
+            ]
+        , div [ id "systems", class "bg-white p-12 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]" ]
+            [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
+                [ text "Supported Games" ]
+            , ul [ class "list-inside list-disc text-3xl lg:text-base" ]
+                [ li [] [ text "Stargrave" ]
+                , li [] [ text "Xenos Rampant" ]
+                ]
+            ]
+        ]
+
+
+viewError errorMessage =
+    div
+        [ id "error"
+        , class "mb-6 bg-red-800 p-6 text-4xl text-white shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] lg:text-xl"
+        ]
+        [ text errorMessage ]
+
+
 view : Model -> Html Msg
 view model =
     div []
@@ -208,11 +253,14 @@ view model =
                     ]
                 , div [ class "flex-1 text-white text-xl text-center uppercase font-semibold" ]
                     [ span [] <|
-                        case model.gameSystem of
-                            Just game ->
-                                [ text (viewGameSystemName game) ]
+                        case model.status of
+                            Loaded gameSystem _ ->
+                                [ text gameSystem ]
 
-                            Nothing ->
+                            New ->
+                                []
+
+                            Error _ ->
                                 []
                     ]
                 , div [ class "flex flex-1 cursor-pointer justify-end" ]
@@ -221,51 +269,25 @@ view model =
                     ]
                 ]
             ]
-        , div [ class "mx-auto max-w-7xl p-4 xl:px-0" ]
-            [ if model.error /= "" then
-                div
-                    [ id "error"
-                    , class "mb-6 bg-red-800 p-6 text-4xl text-white shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] lg:text-xl"
-                    ]
-                    [ text model.error ]
+        , div [ class "mx-auto max-w-7xl p-4 xl:px-0" ] <|
+            case model.status of
+                Loaded _ fragment ->
+                    [ div [ id "wrapper" ] (viewTextHtml fragment) ]
 
-              else
-                text ""
-            , div
-                [ id "start"
-                , class "flex flex-col gap-4"
-                ]
-                (if String.isEmpty model.fragment then
-                    [ div
-                        [ id "how"
-                        , class "flex flex-wrap gap-4"
-                        ]
-                        [ viewUsageStep "1" "Upload your Roster" "Choose File' button above and select your Roster file (.ros or .rosz)" None
-                        , viewUsageStep "2" "View your Cards" "The game system style sheets are formatted so you can easily view cards for the units on your mobile device." Hidden
-                        , viewUsageStep "2" "Print your Cards" "Click Print for a printer friendly version of the unit cards." Flex
-                        ]
-                    , div [ id "systems", class "bg-white p-12 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]" ]
-                        [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
-                            [ text "Supported Games" ]
-                        , ul [ class "list-inside list-disc text-3xl lg:text-base" ]
-                            [ li [] [ text "Stargrave" ]
-                            , li [] [ text "Xenos Rampant" ]
-                            ]
-                        ]
-                    ]
+                New ->
+                    [ viewIntro ]
 
-                 else
-                    []
-                )
-            , div [ id "wrapper" ] (viewTextHtml model.fragment)
-            ]
+                Error errorMessage ->
+                    [ viewError errorMessage
+                    , viewIntro
+                    ]
         ]
 
 
 main : Program () Model Msg
 main =
     Browser.element
-        { init = always ( { error = "", fileContent = "", gameSystem = Nothing, stylesheet = "", fragment = "" }, Cmd.none )
+        { init = always ( { fileContent = "", gameSystem = Nothing, stylesheet = "", fragment = "", status = New }, Cmd.none )
         , view = view
         , update = update
         , subscriptions = subscriptions
