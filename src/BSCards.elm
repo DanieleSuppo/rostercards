@@ -10,7 +10,10 @@ import Html.Parser
 import Html.Parser.Util
 import Http
 import Parser exposing ((|.), (|=), Parser, chompUntil, chompWhile, getChompedString, keyword, run, succeed, symbol, token)
+import Platform.Cmd as Cmd
 import Task
+import Zip exposing (Zip)
+import Zip.Entry as Entry exposing (Entry)
 
 
 type Status
@@ -20,12 +23,20 @@ type Status
 
 
 type alias Model =
-    { fileContent : String
+    { roster : Roster
+    , fileContent : String
     , gameSystem : Maybe GameSystem
     , stylesheet : String
     , fragment : String
     , status : Status
     }
+
+
+type Roster
+    = Initial File
+    | XML String
+    | ZIP Zip
+    | NoFile
 
 
 type alias GameSystem =
@@ -48,7 +59,7 @@ port receiveFragment : (String -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     receiveFragment Recv
 
 
@@ -90,8 +101,12 @@ type Msg
     = OpenFileClicked
     | FileSelected File
     | FileRead String
+    | GotXML String
+    | GotFile
+    | GotEntry (Maybe Entry)
+    | GotZip (Maybe Zip)
     | GotStylesheet (Result Http.Error String)
-    | SendXml
+    | SendXml String
     | Recv String
 
 
@@ -102,33 +117,78 @@ update msg model =
             ( model, Select.file [ ".ros", ".rosz" ] FileSelected )
 
         FileSelected file ->
-            ( model, Task.perform FileRead (File.toString file) )
+            ( { model | roster = Initial file }, Task.perform FileRead (File.toString file) )
 
         FileRead content ->
             if String.startsWith """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" content == True then
-                let
-                    gameSystem =
-                        parseGameSystem content
-
-                    snakeName =
-                        snakeCaseSystemName gameSystem
-                in
-                ( { model | fileContent = content, gameSystem = gameSystem }
-                , Http.get
-                    { url = "/systems/" ++ snakeName ++ ".xsl"
-                    , expect = Http.expectString GotStylesheet
-                    }
-                )
+                ( { model | roster = XML content }, Task.perform (always (GotXML content)) (Task.succeed ()) )
 
             else if String.startsWith """PK""" content then
-                let
-                    _ =
-                        Debug.log "rosz" content
-                in
-                ( model, Cmd.none )
+                ( model, Task.perform (always GotFile) (Task.succeed ()) )
 
             else
-                ( { model | status = Error "Not a Roster" }, Cmd.none )
+                ( { model | status = Error "Not a Roster!" }, Cmd.none )
+
+        GotXML content ->
+            let
+                gameSystem =
+                    parseGameSystem content
+
+                snakeName =
+                    snakeCaseSystemName gameSystem
+            in
+            ( { model | roster = XML content, gameSystem = gameSystem }
+            , Http.get
+                { url = "/systems/" ++ snakeName ++ ".xsl"
+                , expect = Http.expectString GotStylesheet
+                }
+            )
+
+        GotFile ->
+            case model.roster of
+                Initial file ->
+                    ( model
+                    , file
+                        |> File.toBytes
+                        |> Task.map Zip.fromBytes
+                        |> Task.perform GotZip
+                    )
+
+                XML content ->
+                    ( model, Task.perform (always (GotXML content)) (Task.succeed ()) )
+
+                ZIP _ ->
+                    ( model, Cmd.none )
+
+                NoFile ->
+                    ( model, Cmd.none )
+
+        GotZip maybeZip ->
+            case maybeZip of
+                Just zip ->
+                    let
+                        files =
+                            zip
+                                |> Zip.entries
+                                |> List.head
+                    in
+                    ( { model | roster = ZIP zip }, Task.perform (always (GotEntry files)) (Task.succeed ()) )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        GotEntry entry ->
+            case entry of
+                Just data ->
+                    case Entry.toString data of
+                        Ok content ->
+                            ( { model | roster = XML content }, Task.perform (always (GotXML content)) (Task.succeed ()) )
+
+                        Err _ ->
+                            ( model, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         GotStylesheet result ->
             case result of
@@ -137,13 +197,24 @@ update msg model =
                         ( { model | status = Error "Game System not supported!" }, Cmd.none )
 
                     else
-                        ( { model | stylesheet = xsl }, Task.perform (always SendXml) (Task.succeed ()) )
+                        ( model, Task.perform (always (SendXml xsl)) (Task.succeed ()) )
 
                 Err _ ->
                     ( { model | status = Error "Game System not supported!" }, Cmd.none )
 
-        SendXml ->
-            ( model, sendXml ( model.fileContent, model.stylesheet ) )
+        SendXml xsl ->
+            case model.roster of
+                XML xml ->
+                    ( model, sendXml ( xml, xsl ) )
+
+                ZIP _ ->
+                    ( model, Cmd.none )
+
+                Initial _ ->
+                    ( model, Cmd.none )
+
+                NoFile ->
+                    ( model, Cmd.none )
 
         Recv fragment ->
             ( { model | status = Loaded (viewGameSystemName model.gameSystem) fragment, gameSystem = Nothing }, Cmd.none )
@@ -228,6 +299,7 @@ viewIntro =
         ]
 
 
+viewError : String -> Html Msg
 viewError errorMessage =
     div
         [ id "error"
@@ -287,7 +359,7 @@ view model =
 main : Program () Model Msg
 main =
     Browser.element
-        { init = always ( { fileContent = "", gameSystem = Nothing, stylesheet = "", fragment = "", status = New }, Cmd.none )
+        { init = always ( { roster = NoFile, fileContent = "", gameSystem = Nothing, stylesheet = "", fragment = "", status = New }, Cmd.none )
         , view = view
         , update = update
         , subscriptions = subscriptions
