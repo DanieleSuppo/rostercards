@@ -24,10 +24,7 @@ type Status
 
 type alias Model =
     { roster : Roster
-    , fileContent : String
     , gameSystem : Maybe GameSystem
-    , stylesheet : String
-    , fragment : String
     , status : Status
     }
 
@@ -247,7 +244,7 @@ viewTextHtml text =
             Html.Parser.Util.toVirtualDom nodes
 
         Err _ ->
-                []
+            []
 
 
 type ConditionalClass
@@ -358,7 +355,7 @@ view model =
 main : Program () Model Msg
 main =
     Browser.element
-        { init = always ( { roster = NoFile, fileContent = "", gameSystem = Nothing, stylesheet = "", fragment = "", status = New }, Cmd.none )
+        { init = always ( { roster = NoFile, gameSystem = Nothing, status = New }, Cmd.none )
         , view = view
         , update = update
         , subscriptions = subscriptions
