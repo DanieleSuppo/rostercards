@@ -247,7 +247,6 @@ viewTextHtml text =
             Html.Parser.Util.toVirtualDom nodes
 
         Err _ ->
-            Debug.log "result"
                 []
 
 
