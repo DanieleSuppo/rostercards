@@ -48,6 +48,9 @@ type alias GameSystem =
 port sendXml : ( String, String ) -> Cmd msg
 
 
+port sendPrint : () -> Cmd msg
+
+
 port receiveFragment : (String -> msg) -> Sub msg
 
 
@@ -105,6 +108,7 @@ type Msg
     | GotStylesheet (Result Http.Error String)
     | SendXml String
     | Recv String
+    | SendPrint
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -213,8 +217,9 @@ update msg model =
                 NoFile ->
                     ( model, Cmd.none )
 
-        Recv fragment ->
-            ( { model | status = Loaded (viewGameSystemName model.gameSystem) fragment, gameSystem = Nothing }, Cmd.none )
+
+        SendPrint ->
+            ( model, sendPrint () )
 
 
 snakeCaseSystemName : Maybe GameSystem -> String
@@ -331,10 +336,21 @@ view model =
                             Error _ ->
                                 []
                     ]
-                , div [ class "flex flex-1 cursor-pointer justify-end" ]
-                    [ div [ id "print", class "bg-blue-800 px-4 py-2 text-xl font-semibold text-white" ]
-                        [ text "PRINT" ]
-                    ]
+                , div [ class "hidden xl:flex xl:flex-1 cursor-pointer justify-end" ] <|
+                    case model.status of
+                        Loaded _ _ ->
+                            [ button
+                                [ onClick SendPrint
+                                , class "bg-blue-800 px-4 py-2 text-3xl text-white"
+                                ]
+                                [ text "PRINT" ]
+                            ]
+
+                        New ->
+                            []
+
+                        Error _ ->
+                            []
                 ]
             ]
         , div [ class "mx-auto max-w-7xl p-4 xl:px-0" ] <|

@@ -8,9 +8,8 @@ app.ports.sendXml.subscribe(function ([xml, xsl]) {
 
     const processor = new XSLTProcessor()
     processor.importStylesheet(xslDom)
-    const fragment = processor.transformToFragment(xmlDom, document)
-    const wrap = document.createElement('div')
-    wrap.appendChild(fragment)
+})
 
-    app.ports.receiveFragment.send(wrap.innerHTML)
+app.ports.sendPrint.subscribe(() => {
+    window.print()
 })
