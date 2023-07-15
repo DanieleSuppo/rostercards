@@ -270,12 +270,12 @@ viewUsageStep number title description conditional =
         [ class "flex grow bg-white p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]"
         , classList [ ( "lg:hidden", conditional == Hidden ), ( "flex", conditional == Hidden ), ( "lg:flex", conditional == Flex ), ( "hidden", conditional == Flex ) ]
         ]
-        [ div [ class "mr-4 flex w-12 items-center justify-center bg-gray-800 px-4 text-6xl text-white" ]
+        [ div [ class "mr-4 flex w-16 lg:w-12 items-center justify-center bg-gray-800 px-4 text-8xl lg:text-5xl text-white" ]
             [ span [] [ text number ] ]
         , div []
-            [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
+            [ h5 [ class "mb-2 text-7xl lg:text-3xl font-medium leading-tight text-neutral-800" ]
                 [ text title ]
-            , p [ class "mb-4 text-3xl text-neutral-600 lg:text-base" ]
+            , p [ class "mb-4 text-5xl lg:text-2xl text-neutral-600" ]
                 [ text description ]
             ]
         ]
@@ -296,9 +296,9 @@ viewIntro =
             , viewUsageStep "2" "Print your Cards" "Click Print for a printer friendly version of the unit cards." Flex
             ]
         , div [ id "systems", class "bg-white p-12 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)]" ]
-            [ h5 [ class "mb-2 text-4xl font-medium leading-tight text-neutral-800 lg:text-xl" ]
+            [ h5 [ class "mb-6 text-7xl lg:text-3xl font-medium leading-tight text-neutral-800" ]
                 [ text "Supported Games" ]
-            , ul [ class "list-inside list-disc text-3xl lg:text-base" ]
+            , ul [ class "list-inside list-disc text-5xl lg:text-2xl" ]
                 [ li [] [ text "Stargrave" ]
                 , li [] [ text "Xenos Rampant" ]
                 ]
@@ -318,19 +318,19 @@ viewError errorMessage =
 view : Model -> Html Msg
 view model =
     div []
-        [ header [ class "w-full bg-gray-800 p-6 lg:p-3 print:hidden" ]
+        [ header [ class "w-full bg-gray-800 p-6 md:p-4 lg:p-3 print:hidden" ]
             [ div [ class "mx-auto flex max-w-7xl items-center justify-between" ]
                 [ div [ class "flex items-center flex-1" ]
                     [ div [ class "text-white" ] [ text "LOGO" ]
                     , div [ class "px-3" ]
                         [ button
                             [ onClick OpenFileClicked
-                            , class "text-white text-xl uppercase bg-orange-600 p-2 font-semibold"
+                            , class "text-white text-6xl lg:text-3xl uppercase bg-orange-600 p-4 lg:p-2"
                             ]
                             [ text "Select Roster" ]
                         ]
                     ]
-                , div [ class "flex-1 text-white text-xl text-center uppercase font-semibold" ]
+                , div [ class "flex-1 text-white text-5xl lg:text-3xl text-center uppercase font-semibold" ]
                     [ span [] <|
                         case model.status of
                             Loaded gameSystem _ ->
