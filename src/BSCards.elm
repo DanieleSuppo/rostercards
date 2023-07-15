@@ -217,6 +217,12 @@ update msg model =
                 NoFile ->
                     ( model, Cmd.none )
 
+        Recv data ->
+            if String.startsWith "Failed" data == True then
+                ( { model | status = Error data }, Cmd.none )
+
+            else
+                ( { model | status = Loaded (viewGameSystemName model.gameSystem) data, gameSystem = Nothing }, Cmd.none )
 
         SendPrint ->
             ( model, sendPrint () )
