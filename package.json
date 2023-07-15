@@ -7,10 +7,16 @@
     "start": "parcel",
     "build": "parcel build"
   },
-  "staticFiles": {
-    "staticPath": "src/systems",
-    "staticOutPath": "systems"
-  },
+  "staticFiles": [
+    {
+      "staticPath": "src/systems",
+      "staticOutPath": "systems"
+    },
+    {
+      "staticPath": "src/img",
+      "staticOutPath": "img"
+    }
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
