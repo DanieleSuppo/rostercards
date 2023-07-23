@@ -12,7 +12,7 @@
     indent="no"/>
 
     <xsl:template match="bs:roster/bs:forces/bs:force">
-        <div class="grid grid-cols-1 lg:grid-cols-3 print:grid-cols-4 gap-4 print:gap-2 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-3 print:grid-cols-2 gap-4 print:gap-2 w-full">
             <xsl:apply-templates select="bs:selections/bs:selection[@type='unit']" />
             <xsl:apply-templates select=".//bs:rule" />
         </div>
@@ -28,8 +28,8 @@
     </xsl:template>
 
     <xsl:template match="bs:selection[@type='unit']">
-        <div class="flex flex-col border border-solid border-black text-4xl lg:text-2xl print:text-[0.7rem]/[1] print:w-[180] print:min-h-[252] print:break-inside-avoid">
-            <div class="flex bg-gray-200 p-1 sm:p-3 justify-between">
+        <div class="flex flex-col border border-solid border-black text-4xl lg:text-2xl print:text-[0.7rem]/[1] print:w-[2.5in] print:min-h-[3.5in] print:break-inside-avoid">
+            <div class="flex bg-gray-200 p-1 sm:p-3 print:sm:p-2 print:text-2xl justify-between">
                 <div class="print:hidden"></div>
                 <div class="text-center place-self-center uppercase">
                     <xsl:value-of select="@name" />
@@ -155,11 +155,11 @@
     </xsl:template>
 
     <xsl:template match="bs:rule">
-        <div class="flex flex-col border border-solid border-black text-4xl lg:text-2xl print:text-[0.7rem]/[1] print:w-[180] print:min-h-[252] print:break-inside-avoid">
-            <div class="bg-gray-200 p-1 sm:p-3 text-center uppercase">
+        <div class="flex flex-col border border-solid border-black text-4xl lg:text-2xl print:text-[0.7rem]/[1] print:w-[2.5in] print:min-h-[3.5in] print:break-inside-avoid">
+            <div class="bg-gray-200 p-1 sm:p-3 print:sm:p-2 print:text-3xl text-center uppercase">
                 <xsl:value-of select="@name" />
             </div>
-            <div class="p-5">
+            <div class="p-5 print:p-3 print:text-base">
                 <xsl:value-of select="bs:description/." />
             </div>
         </div>
