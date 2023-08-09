@@ -1,6 +1,6 @@
-import { Elm } from './BSCards.elm'
+import { Elm } from './Main.elm'
 
-const app = Elm.BSCards.init({ node: document.getElementById('app') })
+const app = Elm.Main.init({ node: document.getElementById('app') })
 
 app.ports.sendXml.subscribe(function ([xml, xsl]) {
     const xmlDom = new DOMParser().parseFromString(xml, 'application/xml')

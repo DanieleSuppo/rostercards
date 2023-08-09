@@ -1,4 +1,4 @@
-port module BSCards exposing (..)
+port module Main exposing (..)
 
 import Browser
 import File exposing (File)
