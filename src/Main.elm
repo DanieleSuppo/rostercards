@@ -9,6 +9,7 @@ import Html.Events exposing (onClick)
 import Html.Parser
 import Html.Parser.Util
 import Http
+import Json.Decode as Decode exposing (Decoder, bool, errorToString, field, map2, string)
 import Parser exposing ((|.), (|=), Parser, chompUntil, chompWhile, getChompedString, keyword, run, succeed, symbol, token)
 import Platform.Cmd as Cmd
 import Task
@@ -41,6 +42,19 @@ type alias GameSystem =
     }
 
 
+type alias TransformerResponse =
+    { success : Bool
+    , data : String
+    }
+
+
+transformerResponseDecoder : Decoder TransformerResponse
+transformerResponseDecoder =
+    map2 TransformerResponse
+        (field "success" bool)
+        (field "data" string)
+
+
 
 -- PORTS
 
@@ -51,7 +65,7 @@ port sendXml : ( String, String ) -> Cmd msg
 port sendPrint : () -> Cmd msg
 
 
-port receiveFragment : (String -> msg) -> Sub msg
+port receiveFragment : (Decode.Value -> msg) -> Sub msg
 
 
 
@@ -107,7 +121,7 @@ type Msg
     | GotZip (Maybe Zip)
     | GotStylesheet (Result Http.Error String)
     | SendXml String
-    | Recv String
+    | Recv Decode.Value
     | SendPrint
 
 
@@ -217,12 +231,17 @@ update msg model =
                 NoFile ->
                     ( model, Cmd.none )
 
-        Recv data ->
-            if String.startsWith "Failed" data == True then
-                ( { model | status = Error data }, Cmd.none )
+        Recv value ->
+            case Decode.decodeValue transformerResponseDecoder value of
+                Err err ->
+                    ( { model | status = Error (errorToString err) }, Cmd.none )
 
-            else
-                ( { model | status = Loaded (viewGameSystemName model.gameSystem) data, gameSystem = Nothing }, Cmd.none )
+                Ok message ->
+                    if message.success == False then
+                        ( { model | status = Error message.data }, Cmd.none )
+
+                    else
+                        ( { model | status = Loaded (viewGameSystemName model.gameSystem) message.data, gameSystem = Nothing }, Cmd.none )
 
         SendPrint ->
             ( model, sendPrint () )

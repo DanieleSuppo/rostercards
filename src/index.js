@@ -12,11 +12,9 @@ app.ports.sendXml.subscribe(function ([xml, xsl]) {
         const fragment = processor.transformToFragment(xmlDom, document)
         const wrap = document.createElement('div')
         wrap.appendChild(fragment)
-        app.ports.receiveFragment.send(wrap.innerHTML)
-        // app.ports.receiveFragment.send({success: true, data: wrap.innerHTML})
+        app.ports.receiveFragment.send({ success: true, data: wrap.innerHTML })
     } catch (err) {
-        app.ports.receiveFragment.send(err.message)
-        // app.ports.receiveFragment.send({success: false, data: err})
+        app.ports.receiveFragment.send({ success: false, data: err })
     }
 })
 
