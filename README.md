@@ -10,4 +10,4 @@ Roster Cards current supports Stargrave and Xenos Rampant, with plans for more g
 
 ## Where can I access the app?
 
-The app is available at [https://rostercards.pages.dev](https://rostercards.pages.dev)
+The app is available at [https://roster.cards](https://roster.cards)
